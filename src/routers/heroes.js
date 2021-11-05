@@ -1,80 +1,71 @@
 const express = require('express')
-const { MongoClient, ObjectId } = require('mongodb');
-const uri = process.env.DB_URI;
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-const router = new express.Router()
+const { ObjectId } = require('mongodb');
+const mongoUtil = require('../db/conn');
+
+const router = express.Router()
 
 router.get('/getAll',async (req,res)=>{
-  await client.connect();
-  const session = client.startSession();
-  try{
-    await session.withTransaction(async () => {
-      const coll = client.db("almanac").collection("heroes");
-      const resp = await coll.find({}, {
-        sort: {name: 1},
-        projection: {name: 1, title: 1, className: 1, attackType: 1},
-        session
-      }).toArray();
-      res.status(200).send(resp);
-    })
-  } catch (err){
-    res.status(500).send({error: err.message})
-  } finally {
-    await client.close();
-  }
+  const dbConnect = mongoUtil.getDb();
+  dbConnect.collection("heroes").find({}, {
+    sort: {name: 1},
+    projection: {name: 1, title: 1, className: 1, attackType: 1}
+  }).toArray(function(err, result) {
+    if(err){
+      res.status(500).send({error: err.message})
+    } else {
+      res.status(200).send(result);
+    }
+  });
 })
 
 router.get('/get/:id',async (req,res)=>{
-  await client.connect();
-  const session = client.startSession();
-  try{
-    await session.withTransaction(async () => {
-      const coll = client.db("almanac").collection("heroes");
-      const resp = await coll.findOne({_id: new ObjectId(req.params.id)}, {session});
-      console.log(resp);
-      res.status(200).send(resp);
-    })
-  } catch (err){
-    res.status(500).send({error: err.message})
-  } finally {
-    await client.close();
-  }
+  const dbConnect = mongoUtil.getDb();
+  dbConnect.collection("heroes").findOne({
+    _id: new ObjectId(req.params.id)
+  }, function(err, result) {
+    if(err){
+      res.status(500).send({error: err.message})
+    } else {
+      res.status(200).send(result);
+    }
+  });
 })
 
 router.post('/upload',async (req,res)=>{
-  await client.connect();
-  const session = client.startSession();
-  try{
-    await session.withTransaction(async () => {
-      const coll = client.db("almanac").collection("heroes");
-      await coll.insertOne(req.body, {session});
+  const dbConnect = mongoUtil.getDb();
+  dbConnect.collection("heroes").replaceOne(req.body, function(err) {
+    if(err){
+      res.status(500).send({error: err.message})
+    } else {
       res.status(200).send({status:'upload successful!'});
-    })
-  } catch (err){
-    await session.abortTransaction();
-    res.status(500).send({error: err.message})
-  } finally {
-    await session.endSession();
-    await client.close();
-  }
+    }
+  });
 })
 
 router.put('/edit/:id',async (req,res)=>{
-  await client.connect();
-  const session = client.startSession();
-  try{
-    await session.withTransaction(async () => {
-      const coll = client.db("almanac").collection("heroes");
-      await coll.replaceOne({_id: new ObjectId(req.params.id)}, req.body, {session});
+  const dbConnect = mongoUtil.getDb();
+  dbConnect.collection("heroes").replaceOne({
+    _id: new ObjectId(req.params.id)
+  }, req.body, function(err) {
+    if(err){
+      res.status(500).send({error: err.message})
+    } else {
       res.status(200).send({status:'edit successful!'});
-    })
-  } catch (err){
-    await session.abortTransaction();
-    res.status(500).send({error: err.message})
-  } finally {
-    await session.endSession();
-    await client.close();
-  }
+    }
+  });
+})
+
+router.delete('/delete/:id',async (req,res)=>{
+  const dbConnect = mongoUtil.getDb();
+  dbConnect.collection("heroes").deleteOne({
+    _id: new ObjectId(req.params.id)
+  }, function(err) {
+    if(err){
+      res.status(500).send({error: err.message})
+    } else {
+      res.status(200).send({status:'edit successful!'});
+    }
+  });
 })
 
 module.exports = router;
