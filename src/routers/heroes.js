@@ -46,9 +46,9 @@ router.get('/get/:id',async (req,res)=>{
   });
 })
 
-router.post('/upload',async (req,res)=>{
+router.post('/upload', upload.single('thumbnail'), async (req,res)=>{
   const dbConnect = mongoUtil.getDb();
-  dbConnect.collection("heroes").insertOne(req.body, function(err) {
+  dbConnect.collection("heroes").insertOne(JSON.parse(req.body.hero), function(err) {
     if(err){
       res.status(500).send({error: err.message})
     } else {
