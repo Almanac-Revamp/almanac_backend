@@ -1,8 +1,8 @@
 const express = require('express')
 const { ObjectId } = require('mongodb');
 const mongoUtil = require('../db/conn');
-// const path = require('path');
-// const fs = require('fs');
+const path = require('path');
+const fs = require('fs');
 
 const multer = require('multer');
 
@@ -65,7 +65,13 @@ router.put('/edit/:id', upload.single('thumbnail'), async (req,res)=>{
     if(err){
       res.status(500).send({error: err.message})
     } else {
-      res.status(200).send({status:'edit successful!'});
+      if(req.body.oldImageName){
+        console.log(path.resolve(`./public/thumbnails/${req.body.oldImageName}`));
+        fs.unlink(path.resolve(`./public/thumbnails/${req.body.oldImageName}`), err => {
+          if(err) res.status(500).send({error: err.message});
+          res.status(200).send({status:'edit successful!'});
+        });
+      }
     }
   });
 })
