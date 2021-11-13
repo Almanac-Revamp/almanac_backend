@@ -1,14 +1,29 @@
 const express = require('express')
 const { ObjectId } = require('mongodb');
 const mongoUtil = require('../db/conn');
+// const path = require('path');
+// const fs = require('fs');
+
+const multer = require('multer');
 
 const router = express.Router()
+
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, './public/thumbnails');
+  },
+  filename: function (req, file, cb) {
+    cb(null , file.originalname);
+  }
+});
+
+const upload = multer({storage: storage});
 
 router.get('/getAll',async (req,res)=>{
   const dbConnect = mongoUtil.getDb();
   dbConnect.collection("heroes").find({}, {
     sort: {name: 1},
-    projection: {name: 1, title: 1, className: 1, attackType: 1}
+    projection: {name: 1, title: 1, className: 1, attackType: 1, thumbName: 1}
   }).toArray(function(err, result) {
     if(err){
       res.status(500).send({error: err.message})
@@ -33,7 +48,7 @@ router.get('/get/:id',async (req,res)=>{
 
 router.post('/upload',async (req,res)=>{
   const dbConnect = mongoUtil.getDb();
-  dbConnect.collection("heroes").replaceOne(req.body, function(err) {
+  dbConnect.collection("heroes").insertOne(req.body, function(err) {
     if(err){
       res.status(500).send({error: err.message})
     } else {
@@ -42,11 +57,11 @@ router.post('/upload',async (req,res)=>{
   });
 })
 
-router.put('/edit/:id',async (req,res)=>{
+router.put('/edit/:id', upload.single('thumbnail'), async (req,res)=>{
   const dbConnect = mongoUtil.getDb();
   dbConnect.collection("heroes").replaceOne({
     _id: new ObjectId(req.params.id)
-  }, req.body, function(err) {
+  }, JSON.parse(req.body.hero), function(err) {
     if(err){
       res.status(500).send({error: err.message})
     } else {
