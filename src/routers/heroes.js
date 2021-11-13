@@ -65,13 +65,12 @@ router.put('/edit/:id', upload.single('thumbnail'), async (req,res)=>{
     if(err){
       res.status(500).send({error: err.message})
     } else {
-      if(req.body.oldImageName){
-        console.log(path.resolve(`./public/thumbnails/${req.body.oldImageName}`));
+      if(req.body.oldImageName && req.file ? req.body.oldImageName !== req.file.originalname : false){
         fs.unlink(path.resolve(`./public/thumbnails/${req.body.oldImageName}`), err => {
           if(err) res.status(500).send({error: err.message});
-          res.status(200).send({status:'edit successful!'});
         });
       }
+      res.status(200).send({status:'edit successful!'});
     }
   });
 })
